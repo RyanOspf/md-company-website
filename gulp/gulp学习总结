@@ -1,0 +1,179 @@
+用gulp自动化构建工具增强你的工作流程！
+
+1.安装nodejs
+  再将npm转为国内淘宝镜像cnpm（http://npm.taobao.org/）
+  npm install -g cnpm --registry=https://registry.npm.taobao.org
+
+2.全局安装gulp //全局安装gulp是为了执行gulp任务
+  cnpm -g install gulp --save-dev
+  
+3.项目下安装gulp  //项目下安装gulp则是为了调用gulp插件的功能   （每个项目下面都要重新安装一遍）
+  cnpm install gulp --save-dev
+  
+4.项目下安装gulp插件（每个项目下面都要重新安装一遍）
+  cnpm install gulp-htmlmin gulp-imagemin imagemin-pngcrush gulp-minify-css jshint gulp-jshint gulp-uglify gulp-concat gulp-rename gulp-notify --save-dev
+  
+  上面是一次性安装完成
+  gulp-htmlmin:html压缩插件
+  gulp-imagemin:图片压缩
+  gulp-minify-css:css压缩
+  gulp-jshint:js检测
+  gulp-uglify:js压缩
+  gulp-concat:文件合并
+  gulp-rename:文件更名
+  gulp-less:less转css
+  gulp-notify:提示信息
+  
+  如果有问题可以一个一个安装
+  eg:cnpm install gulp-htmlmin --save-dev
+
+5.配置gulpfile.js文件(此文件放在项目文件内)
+  
+  //引入gulp
+  var gulp = require("gulp");
+  
+  //引入组件
+  var htmlmin = require("gulp-htmlmin"), //html压缩
+      imagemin = require("gulp-imagemin"), //图片压缩
+      pngcrush = require("imagemin-pngcrush"),
+      minifycss = require("gulp-minify-css"), //css压缩
+      jshint = require("gulp-jshint"), //js检测
+      uglify = require("gulp-uglify"), //js压缩
+      concat = require("gulp-concat"), //文件合并
+      rename = require("gulp-rename"), //文件更名
+      less = require("gulp-less"), //less转换
+      notify = require("gulp-notify"); //提示信息
+      
+  //压缩html
+  gulp.task("html",function(){
+	  return gulp.src("*.html") //*代表所有,也可以写具体的html文件名
+	  .pipe(htmlmin({collapseWhitespace:true}))
+	  .pipe(gulp.dest("MDmin/"))
+	  .pipe(notify({message:"html task ok"}))
+  });
+  
+  //压缩图片(感觉没有变化，看来不是很适用啊,放弃了)
+  gulp.task('images',function() {
+     return gulp.src('img/*')
+//  .pipe(imagemin()) //压缩图片时总会报错，还没找到原因，先不压缩直接拷贝
+    .pipe(gulp.dest('MDmin/img'))
+    .pipe(notify({ message: 'Images task ok' }))
+});
+
+  //压缩、重命名css文件
+  gulp.task("css",function(){
+	  return gulp.src("css/*.css") //找到要处理的css文件
+	  //.pipe(rename({suffix:".min"})) //重命名
+	  .pipe(minifycss()) //执行压缩
+	  .pipe(gulp.dest("MDmin/css")) //放到新文件夹下
+	  .pipe(notify({message:"css is ok"})) //成功的提示
+  });
+  
+  //合并、压缩、重命名css
+  /*gulp.task('hebing',function(){
+	  return gulp.src('css/*.css')
+	  .pipe(concat('main.css')) //把css文件夹下的所有css文件合并到main.css
+	  .pipe(gulp.dest('MDmin/css')) //放到MDmin/css文件夹下
+	  .pipe(rename({suffix:'.min'})) //再重命名一下xx.min.css
+	  .pipe(minifycss())//执行压缩
+	  .pipe(gulp.dest('MDmin/css')) //把压缩的css放到MDmin/css下
+	  .pipe(notify({message:'hebing is ok!'})) //成功提示
+  })*/
+  
+  //压缩、重命名js文件
+  gulp.task("js",function(){
+	  return gulp.src("js/*.js")
+//	.pipe(rename({suffix:".min"})) //重命名
+	  .pipe(uglify())
+	  .pipe(gulp.dest("MDmin/js"))
+	  .pipe(notify({message:"js is ok!"}))
+})
+
+// 合并、重命名、压缩js文件
+  /*gulp.task('js', function() {
+    return gulp.src('js/*.js')
+    .pipe(concat('all.js'))
+    .pipe(gulp.dest('MDmin/js'))
+    .pipe(rename({ suffix: '.min' }))
+    .pipe(uglify())
+    .pipe(gulp.dest('MDmin/js'))
+    .pipe(notify({ message: 'js task ok' }));
+  });*/
+  
+  //less转css
+  gulp.task("less",function(){
+	  return gulp.src("less/*.less")
+	  .pipe(less())
+	  .pipe(gulp.dest("MDmin/css"))
+	  .pipe(notify({message:"less 转 css is ok!"}))
+  })
+  
+  /*
+  默认任务名为default 可以取其他名字
+  启动监听事件：命令提示符执行gulp default
+  注意：该命令符执行需打开状态，关闭后监听事件结束(ctrl+c)
+  */
+  
+  gulp.task("default",function(){
+	  gulp.run("html","css","js","images","less"); //运行各种任务
+
+	  //监听单个html文件变化
+	  gulp.watch("index.html",function(){
+		  gulp.run("html");
+	  });
+
+	  //watch .less files
+	  gulp.watch("less/*.less",["less"]);//后面的参数应该是上面的任务名称(task)
+
+	  //watch .css files
+	  gulp.watch("css/*.css",["css"]);
+
+	  //watch .js files
+	  gulp.watch("js/*.js",["js"]);
+
+	  //watch image files
+	  gulp.watch("images/*",["images"]);
+
+  })
+  
+  /*
+  执行:
+    如果只执行html文件，那么在cmd中输入 gulp html(这个html是你自己取的名字)
+    如果监控所有文件，那么在cmd中输入 gulp default 
+  */    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
