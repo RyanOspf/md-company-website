@@ -17,6 +17,7 @@
   gulp-htmlmin:html压缩插件
   gulp-imagemin:图片压缩
   gulp-minify-css:css压缩
+  jshint:js检测一起的
   gulp-jshint:js检测
   gulp-uglify:js压缩
   gulp-concat:文件合并
