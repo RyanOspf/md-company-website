@@ -1,0 +1,53 @@
+//第一种
+$.ajax({
+    url:"guestbook/index.php",
+    type:"post",
+    dataType:"json",
+    data:{
+      m:"index",
+      a:"login",
+      username:user,
+      password:pswd,
+    },
+    success:function(data){
+      console.log(data);
+    },
+    error:function(error){
+      console.log(error);
+    }
+})
+//第二种
+$.ajax({
+			url: 'guestbook/index.php',
+			type: 'post',
+			dataType: 'json',
+			data: {
+				m: "index",
+				a:"login",
+				username:user,
+				password:pswd,
+			},
+		}).done(function(data) {
+			console.log(data);
+			if(getCookie("uid") && getCookie("username")){
+				$(".error").show().html(data.message);
+				setTimeout(function(){
+					window.location.href = "index.html";
+				}, 100);
+				return false;
+			}
+
+			if(!data.code){
+				$(".error").show().html(data.message);
+				setTimeout(function(){
+					window.location.href = "index.html";
+				}, 100);
+				
+			}else{
+				$(".error").show().html("用户名或密码有误");
+			}
+		}).fail(function() {
+			console.log("error");
+		}).always(function() {
+			// console.log("complete");
+		});
