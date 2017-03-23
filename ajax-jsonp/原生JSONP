@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<title>jsonp demo</title>
+</head>
+<script>
+	function test(data){ //回调函数的value
+		var oUl = document.getElementById("ul");
+		var arr = data.s;
+		var str = "";
+		console.log(arr);
+		for(var i=0;i<arr.length;i++){
+			str += '<li>'+arr[i]+'</li>'
+		}
+		oUl.innerHTML = str;
+	}
+
+	//http://suggestion.baidu.com/su?wd='+this.value+'&cb=test
+	//cb是回调函数key
+
+	window.onload = function(){
+		var oSearch = document.getElementById("search");
+		var oUl = document.getElementById("ul");
+
+		oSearch.onkeyup = function(){
+			var val = this.value;
+			var url = "http://suggestion.baidu.com/su?wd="+val+"&cb=test";
+			var oScript = document.createElement("script");
+			oScript.src = url;
+			document.body.appendChild(oScript);
+		}
+
+	}
+</script>
+<body>
+	<input type="text" id="search" />
+	<ul id="ul"></ul>
+</body>
+</html>
