@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<title>jsonp demo</title>
+	<script src="http://cdn.bootcss.com/jquery/3.2.1/jquery.min.js"></script>
+</head>
+<body>
+	<input type="text" placeholder="请输入搜索内容">
+	<ul id="ul"></ul>
+</body>
+<script>
+	//http://suggestion.baidu.com/su?wd='+this.value+'&cb=maiov
+	//cb是回调函数名字，?就是随机的名字
+	//第一种jsonp
+	/*$("input[type=text]").keyup(function(){
+		var val = $(this).val();
+		console.log(val);
+		$.getJSON("http://suggestion.baidu.com/su?wd="+val+"&cb=?",
+		    function (data) {
+		        var list = data.s;
+		        var str = "";
+		        for(var i=0;i<list.length;i++){
+		        	str += '<li>'+list[i]+'</li>';
+		        }
+		        $("#ul").html(str);
+		    }
+		);
+	})*/
+	//第二种jsonp
+	 $("input[type=text]").keyup(function(){
+		var val = $(this).val();
+		$.ajax({
+			type:"get",	//jsonp类型下只能使用GET，不能用POST，这里不写默认为GET
+			url:'http://suggestion.baidu.com/su', //跨域到http://suggestion.baidu.com/su
+			async:true, //是否异步
+			dataType:"jsonp", //指定为jsonp类型
+			data:{"wd":val}, //数据参数
+			jsonp:"cb",	//服务器端获取的回到函数名的key
+			jsonpCallback:"miaov", //回调函数名
+			success:function(data){ //成功执行的处理
+				console.log(data);
+			}
+		});
+	 })
+		
+
+
+	
+</script>
+</html>
