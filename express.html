@@ -1,0 +1,62 @@
+ 标题： vue打包之后的文件如何部署到express服务器上
+ 
+ 1、首先用vue-cli初始化项目目录
+
+    vue init webpack pro-name
+
+    cd pro-name && npm install
+
+    npm run dev
+
+    //看到127.0.0.1:8080端口出现vuejs的欢迎界面表示成功。
+
+  2、安装部署express
+
+    npm install express body-parser --save
+
+    //如果不想把express body-parser安装到package.json中，只是临时使用可以不用--save
+  
+    然后在项目的根目录添加app.js作为启动express服务器的代码
+    
+    const express = require('express')
+    const app = express()
+    app.use('/', (req, res) => {
+      res.send('hello express!')
+    })
+
+    app.listen(3000, () => {
+      console.log('app listening on port 3000.')
+    })
+    
+    执行 node app.js
+    打开浏览器访问localhost:3000，出现"hello express"，说明express部署成功
+
+  3、对vue进行打包
+    执行： npm run build
+    打包后的文件存放于dist文件夹中，vue经过webpack打包之后生成dist文件夹，里面有个index.html，他是前端页面和服务端的对接页面。
+
+  4、修改app.js
+
+    在express中加入app.use(express.static(path.join(__dirname, 'dist')))；app.js 代码如下：
+
+    const express = require('express')
+    const path = require('path')
+    const app = express()
+ 
+    app.use(express.static(path.join(__dirname, 'dist')))
+    app.listen(3000,() => {
+      console.log('app listening on port 3000.')
+    })
+
+  5、启动express
+    在启动express之前，需要修改packge.json 里面的配置 // 也可以不修改直接 node app.js
+
+    "scripts": {
+      "dev": "node build/dev-server.js",
+      "build": "node build/build.js",
+      "server": "nodemon app.js",
+      "start": "node app.js"
+    }
+
+    然后执行：npm run start
+    此时就可以通过localhost:3000访问到vue的欢迎界面了。 也可以直接输入 本机ip地址:3000 访问到vue的欢迎界面。
