@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>HTML5之FileReader的使用</title>
+</head>
+<body>
+  <input type="file" id="file" onchange="upLoadImg(event)">
+  <img src="" id="oImg" alt="">
+  <script>
+    //原生ajax
+    let Ajax = {
+      get(url, fn) {
+        var xhr = new XMLHttpRequest()
+        xhr.open('GET', url, true)
+        xhr.onreadystatechange = function() {
+          if(xhr.readyState == 4 && xhr.status == 200) {
+            //fn.call(this, xhr.responseText)
+            console.log(xhr.responseText)
+          }
+        }
+        xhr.send()
+      },
+      post(url, data, fn) {
+        var xhr = new XMLHttpRequest()
+        xhr.open('POST', url, true)
+        // 添加http头，发送信息至服务器时内容编码类型
+        // 请求头根据后台要求来设置，我们后台的是第二种
+        //xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded")
+        xhr.setRequestHeader("Content-Type", "application/json;charset=utf-8") 
+        xhr.onreadystatechange = function() {
+          if (xhr.readyState == 4 && xhr.status == 200) {
+            // fn.call(this, xhr.responseText)
+            console.log(xhr.responseText)
+          }
+        }
+        xhr.send(JSON.stringify(data))
+      }
+    }
+
+    //HTML5定义了FileReader作为文件API的重要成员用于读取文件，根据W3C的定义，FileReader接口提供了读取文件的方法和包括读取结果的事件模型。
+    
+    //1.检测浏览器对FileReader的支持
+    
+    /*
+    let fr = null
+    try{
+      fr = new FileReader()
+    }catch(ev){
+      throw new Error('浏览器不支持FileReader')
+    }
+    */
+
+    //2.调用FileReader对象的方法
+    //FileReader的实例拥有4个方法，其中3个用以读取文件，另一个用来中断读取。下面的表格列出了这些方法以及他们的参数和功能，需要注意的是 ，无论读取成功或失败，方法并不会返回读取结果，这一结果存储在 result属性中。
+    
+    //四个方法
+    //abort               参数 none             描述  中断读取
+    //readAsBinaryString  参数 file             描述  将文件读取为二进制码
+    //readAsDataURL       参数 file             描述  将文件读取为 DataURL  （也就是base64）
+    //readAsText          参数  file,[encoding] 描述  将文件读取为文本
+
+    /*
+    readAsText：该方法有两个参数，其中第二个参数是文本的编码方式，默认值为 UTF-8。这个方法非常容易理解，将文件以文本方式读取，读取的结果即是这个文本文件中的内容。
+    
+    readAsBinaryString：该方法将文件读取为二进制字符串，通常我们将它传送到后端，后端可以通过这段字符串存储文件。
+
+    readAsDataURL：这是例子程序中用到的方法，该方法将文件读取为一段以 data: 开头的字符串，这段字符串的实质就是 Data URL，Data URL是一种将小文件直接嵌入文档的方案。这里的小文件通常是指图像与 html 等格式的文件。
+    */
+    
+    //3. 处理事件
+    //FileReader 包含了一套完整的事件模型，用于捕获读取文件时的状态，下面这个表格归纳了这些事件。
+    /*
+    onabort       中断时触发
+    onerror       出错时触发
+    onload        文件读取成功完成时触发
+    onloadend     读取完成触发，无论成功或失败
+    onloadstart   读取开始时触发
+    onprogress    读取中
+    */
+    //文件一旦开始读取，无论成功或失败，实例的 result 属性都会被填充。如果读取失败，则 result 的值为 null ，否则即是读取的结果，绝大多数的程序都会在成功读取文件的时候，抓取这个值。
+    
+
+    //demo1 上传图片
+    //!/image\/\w+/.test(file.type)
+    function upLoadImg(ev) {
+
+      let rs = ev.target.files[0]
+      // if(!/image\/\w+/.test(rs.type)) {
+      //   alert('请选择图片类型文件')
+      //   return false
+      // }
+
+      let fr = null
+      try{
+        fr = new FileReader()
+      }catch(ev){
+        throw new Error('浏览器不支持FileReader')
+      }
+
+      fr.onload = function(data) {
+        console.log(data.target.result) 
+
+        //只有以readAsDataURL的方式上传图片才可以预览
+        // document.querySelector('#oImg').src = data.target.result
+        
+        Ajax.post(
+          'http://172.16.6.93:90/u-api/httpHandler/api_v2/WxManager/AddUploadFileContent',
+          {
+            Token: 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJjdHkiOjEsInBpZCI6MSwidWlkIjoxLCJ1bm0iOiJhZG1pbiIsImV4cCI6MTUzNDU4MTg1Ni4wLCJ0aW1lIjoiMjAxOC0wOC0wM1QxNjo0NDoxNS44ODYxODg0KzA4OjAwIn0.fQw8KdO08g9t9NTqL6rbOCA6eZVLi3UDRc9Pm9beW6o',
+            Type: '.'+rs.name.split('.')[1],
+            Data: data.target.result.split(',')[1]
+          })
+        }
+
+      fr.onerror = function(ev) {
+        console.log('读取错误')
+      }
+
+      fr.onloadstart = function() {
+        console.log('开始读取')
+      }
+
+      fr.onprogress = function() {
+        console.log('读取中')
+      }
+
+      fr.onloadend = function() {
+        console.log('不论读取成功还是失败，都会执行此事件')
+      }
+
+      fr.readAsDataURL(rs) //readAsDataURL是以 DataURL的方式(base64)传给后台的
+
+      // fr.readAsBinaryString(rs) 
+      // fr.readAsText(rs)
+
+    }
+    
+    //了解一下FormData上传
+  </script>
+</body>
+</html>
