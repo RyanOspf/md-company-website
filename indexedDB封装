@@ -1,0 +1,261 @@
+class indexedDB {
+    constructor(props) {
+        // 数据库名字 (必填项)
+        this.dbName = props.dbName;
+        // 数据库版本
+        this.version = props.version || 1;
+        // 主键 
+        this.keyPathId = props.keyPathId || 'id';
+        // 数据库表名 (必填项)
+        this.tableName = props.tableName;
+        // 数据库表创建的索引
+        this.indexVal = props.indexVal || [];
+        // 数据库对象
+        this.request = null;
+        // 数据库对象返回可操作的对象
+        this.db = null;
+        this.init();
+    }
+
+    // 初始化
+    init() {
+        if (window.indexedDB) {
+            this.request = window.indexedDB.open(this.dbName, this.version);
+            this.request.onerror = this.errorHandle;
+            this.request.onupgradeneeded = this.upgradeneededHandle; 
+            this.request.onsuccess = this.successHandle;
+        } else {
+            alert('不支持indexedDB')
+        }
+    }
+
+    // 数据库时状态
+    errorHandle = () => {
+        console.log('数据库创建失败')
+    }
+
+    // 初始化数据库时状态，只操作一次，除非版本号更新
+    upgradeneededHandle = (ev) => {
+        console.log('数据库更新了表')
+        this.db = ev.target.result;
+        this.createTable();
+    }
+
+    // 创建表明和表字段索引
+    createTable = () => {
+        if (!this.db.objectStoreNames.contains(this.tableName)) {
+            let objectStore = this.db.createObjectStore(this.tableName, {
+                keyPath: this.keyPathId
+            })
+            this.indexVal.forEach((item) => {
+                objectStore.createIndex(item, item, {unique: false})
+            })
+        }
+    }
+
+    // 数据库连接状态
+    successHandle = (ev) => {
+        console.log('数据库连接成功')
+        this.db = this.request.result;
+    }
+
+    /*
+        添加数据
+        data @type: json对象
+    */
+    addData = (data, successCallBack, failCallBack) => {
+        let request = this.db.transaction(this.tableName, 'readwrite').objectStore(this.tableName).add(data);
+        request.onsuccess = () => {
+            successCallBack && successCallBack('数据写入成功')
+        }
+        request.onerror = () => {
+            failCallBack && failCallBack('数据写入失败')
+        }
+    }
+
+    /*
+        读取单条数据
+        _index @type keyPath的类型
+    */ 
+    readSingleData = (_index, successCallBack, failCallBack) => {
+        let request = this.db.transaction(this.tableName, 'readonly').objectStore(this.tableName).get(_index);
+        request.onsuccess = () => {
+            if (request.result) {
+                successCallBack && successCallBack(request.result);
+                console.log('读取单条数据成功')
+            } else {
+                successCallBack && successCallBack('未获得数据记录');
+            }
+        }
+        request.onerror = () => {
+            failCallBack && failCallBack('读取单条数据失败')
+        }
+    }
+
+    /*
+        读取所有数据，通过游标遍历
+        暂不传参
+    */ 
+    readAllData = (successCallBack, failCallBack) => {
+        let request = this.db.transaction(this.tableName).objectStore(this.tableName).openCursor();
+        let arr = [];
+        request.onsuccess = (e) => {
+            let cursor = e.target.result;
+            if (cursor) {
+                arr.push(cursor.value)
+                cursor.continue();
+            } else {
+                successCallBack && successCallBack(arr)
+                console.log('读取全部数据成功')
+            }
+        }
+        request.onerror = () => {
+            failCallBack && failCallBack('读取全部数据失败')
+        }
+    }
+
+    /*
+        更新数据
+        data @type 要更新的那条数据
+    */ 
+    updateData = (data, successCallBack, failCallBack) => {
+        let request = this.db.transaction(this.tableName, 'readwrite').objectStore(this.tableName).put(data);
+        request.onsuccess = () => {
+            successCallBack && successCallBack('更新数据成功');
+        }
+        request.onerror = () => {
+            failCallBack && failCallBack('更新数据失败')
+        }
+    }
+
+    /*
+        删除数据
+        data @type 通过keyPath
+    */
+    removeData = (_index, successCallBack, failCallBack) => {
+        let request = this.db.transaction(this.tableName, 'readwrite').objectStore(this.tableName).delete(_index);
+        request.onsuccess = () => {
+            successCallBack && successCallBack('删除数据成功');
+        }
+        request.onerror = () => {
+            failCallBack && failCallBack('删除数据失败')
+        }
+    }
+
+    /*
+        通过索引获取单条数据 （完全匹配）
+        indexObj @type 对象
+        {
+            name: 索引名,
+            value: 用户想要检索的值
+        }
+    */
+    getIndexNameData = (indexObj, successCallBack, failCallBack) => {
+        let request = this.db.transaction(this.tableName, 'readonly').objectStore(this.tableName).index(indexObj.name).get(indexObj.value);
+        let arr = [];
+        request.onsuccess = (e) => {
+            let result = e.target.result;
+            if (result) {
+                arr.push(result)
+            }
+            successCallBack && successCallBack(arr);
+            console.log('通过索引查找成功')
+        }
+        request.onerror = () => {
+            failCallBack && failCallBack('通过索引查找失败')
+        }
+    }
+
+    /*
+        通过索引获取所有数据 （通过游标） （完全匹配）
+        indexObj @type 对象
+        {
+            name: 索引名,
+            value: 用户想要检索的值
+        }
+    */
+    getAllIndexNameData = (indexObj, successCallBack, failCallBack) => {
+        let request = this.db.transaction(this.tableName, 'readonly').objectStore(this.tableName).index(indexObj.name);
+        let range = IDBKeyRange.only(indexObj.value);
+        let arr = [];
+        // next,prev 正序倒序
+        request.openCursor(range, 'prev').onsuccess = (e) => {
+            let cursor = e.target.result;
+            if (cursor) {
+                arr.push(cursor.value)
+                cursor.continue()
+            } else {
+                successCallBack && successCallBack(arr);
+                console.log('通过索引查找所有数据成功')
+            }
+        }
+        request.openCursor(range, 'prev').onerror = () => {
+            failCallBack && failCallBack('通过索引查找所有数据失败')
+        }
+    }
+
+    /*
+        模糊查询 （不完全匹配）
+        likeObj @type 对象
+        {
+            name: 索引名,
+            value: 用户想要检索的值
+        }
+    */
+    getLikeSearchData = (likeObj, successCallBack, failCallBack) => {
+        let request = this.db.transaction(this.tableName).objectStore(this.tableName).openCursor();
+        let arr = [];
+        request.onsuccess = (e) => {
+            let cursor = e.target.result;
+            if (cursor) {
+                if (cursor.value[likeObj.name].includes(likeObj.value)) {
+                    arr.push(cursor.value)
+                }
+                cursor.continue();
+            } else {
+                successCallBack && successCallBack(arr)
+                console.log('模糊查询数据成功')
+            }
+        }
+        request.onerror = () => {
+            failCallBack && failCallBack('模糊查询数据失败')
+        }
+    }
+
+    /*
+        获取总条数 
+        不需要传参
+    */
+    totalCount = (successCallBack, failCallBack) => {
+        let request = this.db.transaction(this.tableName).objectStore(this.tableName).count();
+        request.onsuccess = (e) => {
+            successCallBack && successCallBack(request.result)
+        }
+        request.onerror = () => {
+            failCallBack && failCallBack('获取总数失败')
+        }
+    }
+
+    
+
+    /*
+        删除数据库
+        获取数据库的名字，然后在删除之前先把所有的处理事务关闭，才可以删除
+    */
+    deleteDataBase = (successCallBack, failCallBack) => {
+        let dbName = this.db.name;
+        let dbVersion = this.db.version;
+        this.db.close();
+        let DBDeleteRequest = window.indexedDB.deleteDatabase(dbName);
+        DBDeleteRequest.onsuccess = () => {
+            successCallBack && successCallBack('删除数据库成功')
+        }
+        DBDeleteRequest.onerror = () => {
+            failCallBack && failCallBack('删除数据库失败')
+        }
+        DBDeleteRequest.onblocked = () => {
+            console.log('no delete')
+        }
+    }
+
+}
