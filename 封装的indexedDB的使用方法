@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>DEMO</title>
+    <style>
+        * {margin: 0; padding: 0; list-style: none;}
+        body {padding: 20px;}
+        li {
+            width: 60%;
+            display: flex;
+            justify-content: space-between;
+            border-bottom: 1px solid #999;
+            line-height: 36px;
+        }
+        .boxWrap {
+            width: 100vw;
+            height: 100vh;
+            position: fixed;
+            z-index: 100;
+            left: 0;
+            top: 0;
+            background: rgba(0, 0, 0, .2);
+        }
+        .boxInput {
+            width: 400px;
+            height: 300px;
+            background: white;
+            position:absolute;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+        }
+        .boxInput input, .boxInput button {
+            display: block;
+            margin:20px auto 0;
+        }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <div style="line-height: 50px;">
+            <input v-model="loginName" type="text" placeholder="通过用户名登录">
+            <span>登录名：{{ loginName }}</span>
+            <button @click="login">登录</button>
+            (这里是模拟登录的，点击登录后，请刷新页面)
+        </div>
+        <div style="line-height: 50px;">
+            <input v-model="userObj.name" type="text" placeholder="请输入用户名">
+            <input v-model="userObj.sex" type="text" placeholder="请输入性别">
+            <input v-model="userObj.age" type="text" placeholder="请输入年龄">
+            <input v-model="userObj.like" type="text" placeholder="爱好">
+            <button @click="submitData">提交数据</button>
+        </div>
+        <div style="line-height: 50px;">
+            <input type="text" v-model="searchName" placeholder="根据用户名查询">
+            <button @click="matchSearch">精准查询</button>
+        </div>
+        <div style="line-height: 50px;">
+                <input type="text" v-model="likeName" placeholder="根据用户名查询">
+                <button @click="likeSearch">模糊查询</button>
+            </div>
+        <h3>用户展示表</h3>
+        <ul>
+            <li>
+                <span>userGuid</span>
+                <span>userName</span>
+                <span>userSex</span>
+                <span>userAge</span>
+                <span>userLike</span>
+                <span>operate</span>
+            </li>
+            <li :key="index" v-for="(item, index) in lists">
+                <span>{{ item.guid }}</span>
+                <span>{{ item.name }}</span>
+                <span>{{ item.sex }}</span>
+                <span>{{ item.age }}</span>
+                <span>{{ item.like }}</span>
+                <span>
+                    <i @click="maskBox = true; maskIndex=index; updateObj = item;">更新</i>
+                    <i @click="deleteHandle(item.guid, index)">删除</i>
+                </span>
+            </li>
+        </ul>
+        <div class="boxWrap" v-show="maskBox">
+            <div class="boxInput">
+                <input v-model="updateObj.name" type="text" placeholder="请输入用户名">
+                <input v-model="updateObj.sex" type="text" placeholder="请输入性别">
+                <input v-model="updateObj.age" type="text" placeholder="请输入年龄">
+                <input v-model="updateObj.like" type="text" placeholder="爱好">
+                <button @click="confirmUpdate">确定更新</button>
+            </div>
+        </div>
+    </div>
+</body>
+<script src="./indexedDB.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+<script>
+    function $guid() {
+      return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+          var r = Math.random()*16|0, v = c == 'x' ? r : (r&0x3|0x8);
+          return v.toString(16);
+      });
+    }
+
+    new Vue({
+        el: '#app',
+        data: {
+            searchName: '',
+            likeName: '',
+            maskBox: false,
+            maskIndex: '',
+            updateObj: {
+                name: '',
+                sex: '',
+                age: '',
+                like: ''
+            },
+            userObj: {
+                name: '',
+                sex: '',
+                age: '',
+                like: ''
+            },
+            loginName: '',
+            lists: [],
+            indexedDB: null
+        },
+        mounted() {
+            if (localStorage.getItem('users')) {
+                this.loginName = localStorage.getItem('users');
+            }
+
+            if (this.loginName) {
+                this.indexedDB = new indexedDB({
+                    dbName: this.loginName,
+                    keyPathId: 'guid',
+                    tableName: 'userTable',
+                    indexVal: ['name', 'sex', 'age', 'like']
+                })
+
+                setTimeout(() => {
+                    this.indexedDB.readAllData((res) => {
+                        this.lists = res;
+                    }, (err) => {
+                        console.log(err)
+                    })
+                }, 100)
+
+            }
+            
+
+        },
+        methods: {
+            matchSearch() {
+                if (!this.searchName) {
+                    return alert('请输入查询内容')
+                }
+                this.indexedDB.getIndexNameData({name: 'name', value: this.searchName}, (res) => {
+                    this.lists = res;
+                }, (err) => {
+                    console.log(err)
+                })
+            },
+            likeSearch() {
+                if (!this.likeName) {
+                    return alert('请输入查询内容')
+                }
+                this.indexedDB.getLikeSearchData({name: 'name', value: this.likeName}, (res) => {
+                    this.lists = res;
+                }, (err) => {
+                    console.log(err)
+                })
+            },
+            confirmUpdate() {
+                this.indexedDB.updateData(this.updateObj, (res) => {
+                    console.log(res)
+                    this.lists[this.maskIndex] = this.updateObj;
+                    this.maskBox = '';
+                    this.maskIndex = '';
+                }, (err) => {
+                    console.log(err)
+                })
+            },
+            deleteHandle(guid, _index) {
+                this.lists.splice(_index,1)
+                this.indexedDB.removeData(guid, (res) => {
+                    console.log(res)
+                }, (err) => {
+                    console.log(err)
+                })
+            },
+            submitData() {
+                let _this = this;
+                let {name, sex, age, like} = this.userObj;
+                if (name && sex && age && like) {
+                    this.indexedDB.addData({guid:$guid(), ...this.userObj}, (res) => {
+                        console.log(res)
+                        this.lists.push({guid:$guid(), ...this.userObj})
+                        console.log(this.lists)
+                    }, (err) => {
+                        console.log(err)
+                    })
+                } else {
+                    alert('内容不能为空')
+                }
+            },
+            login() {
+                if (this.loginName) {
+                    localStorage.setItem('users', this.loginName)
+                    this.indexedDB = new indexedDB({
+                        dbName: this.loginName,
+                        keyPathId: 'guid',
+                        tableName: 'userTable',
+                        indexVal: ['name', 'sex', 'age', 'like']
+                    })
+                } else {
+                    alert('请输入合法用户名')
+                }
+            }
+        }
+    })
+</script>
+</html>
